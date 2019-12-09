@@ -1,0 +1,135 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "qextserialport.h"
+#include <QLineEdit>
+#include <QTextEdit>
+
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    initialisation();
+
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    /*const char *message = "AT" "\x0D";
+    if(port->write(message,strlen(message))){
+        qDebug( "c'est Ok");
+
+        char buff[1024];
+        int numBytes;
+
+        numBytes = port->bytesAvailable();
+        if(numBytes > 1024)
+            numBytes = 1024;
+
+        int i = port->read(buff, numBytes);
+        if (i != -1)
+            buff[i] = '\0';
+        else
+            buff[0] = '\0';
+        QString msg = QLatin1String(buff);
+
+
+           qDebug(msg.toLatin1());
+
+
+        ui->textEdit->setText(msg);
+
+
+    } else {
+            qDebug( "Pas Ok");
+        } */
+    emettre("AT" "\x0D");
+    recevoir();
+
+}
+
+
+void MainWindow::initialisation()
+{
+
+#ifdef Q_OS_UNIX
+    port = new QextSerialPort(QLatin1String("/dev/ttyS0"), QextSerialPort::Polling);
+#else
+    port = new QextSerialPort(QLatin1String("COM13"), QextSerialPort::Polling);
+#endif /*Q_OS_UNIX*/
+    port->setBaudRate(BAUD115200);
+    port->setFlowControl(FLOW_OFF);
+    port->setParity(PAR_NONE);
+    port->setDataBits(DATA_8);
+    port->setStopBits(STOP_2);
+    //set timeouts to 500 ms
+    port->setTimeout(500);
+
+    if (port->open(QIODevice::ReadWrite)) {
+
+           qDebug("Connecté");
+
+       } else {
+
+           qDebug("Erreur");
+       }
+
+
+}
+
+
+int MainWindow::emettre(const QString &message)
+{
+    int nombresOctets = -1;
+
+    if (port == NULL || !port->isOpen())
+    {
+        return -1;
+    }
+
+    nombresOctets = port->write(message.toLatin1());
+
+    return nombresOctets;
+}
+
+
+/* void MainWindow::on_pushButton_3_clicked()
+{
+    port = new QextSerialPort(QLatin1String("COM13"), QextSerialPort::Polling); // Qt 4
+        // configuration du port ...
+
+        if (port->open(QIODevice::ReadWrite) == true)
+        {
+            // on connecte le signal readyRead() au slot recevoir()
+            connect(port, SIGNAL(readyRead()), this, SLOT(recevoir()));
+            qDebug( "PaOk");
+        }
+}
+
+
+
+*/
+
+void MainWindow::recevoir()
+{
+    QByteArray donnees;
+
+    while (port->bytesAvailable())
+    {
+        donnees += port->readAll();
+
+    }
+
+    QString trameRecue = QString(donnees.data());
+    qDebug(trameRecue.toLatin1());
+
+}
